@@ -1,0 +1,157 @@
+{
+  "name": "Error_Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "09e5c6e3-0c8e-4ad7-98e5-383c25f35a67",
+              "name": "workflowId",
+              "value": "={{ $json.workflow.id }}",
+              "type": "string"
+            },
+            {
+              "id": "5ab90d2f-b832-4af0-a014-ac0de1fa25de",
+              "name": "workflowName",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "f2426669-f73a-4dbb-9d89-d06802bb46bf",
+              "name": "errorName",
+              "value": "={{ $json.execution.error.description }}",
+              "type": "string"
+            },
+            {
+              "id": "fe108008-e40f-4256-ba93-8ba1a3d106d9",
+              "name": "errorMessage",
+              "value": "={{ $json.execution.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "9e63165e-9dd9-4778-ae2e-0f662f995f45",
+              "name": "failedNodeName",
+              "value": "={{ $json.execution.lastNodeExecuted }}",
+              "type": "string"
+            },
+            {
+              "id": "0d4c27ef-44ee-43ce-88db-da1b8c38ca81",
+              "name": "timestamp",
+              "value": "={{ new Date($json.execution.executionContext.establishedAt).toLocaleString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).replace('T',' ') + '.' + String($json.execution.executionContext.establishedAt % 1000).padStart(3,'0') + ' (-03:00)' }}",
+              "type": "string"
+            },
+            {
+              "id": "5f6c05e0-c6b7-4eed-9197-70ee7d34c6c2",
+              "name": "executionId",
+              "value": "={{ $json.execution.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -80
+      ],
+      "id": "c0b87b49-d184-4ddd-a6e4-0ddd9a07c137",
+      "name": "normalizar datos",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -80
+      ],
+      "id": "371029e7-59d2-4ab3-babd-ae0187bb5ecb",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "=your-email@example.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.bodyHtml }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        -80
+      ],
+      "id": "bc85b5e3-04ac-4053-9374-7dcc42f1a3e7",
+      "name": "Send a message",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Gmail your-email@example.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (JavaScript)\n// Espera que el item de entrada tenga los campos del error (como tu JSON)\n// Devuelve subject, bodyText y bodyHtml\n\nfunction fmt(v, fallback = '—') {\n  if (v === null || v === undefined || v === '') return fallback;\n  return String(v);\n}\n\nfunction nowISO() {\n  return new Date().toISOString();\n}\n\nconst item = $input.first().json;\n\nconst workflowId = fmt(item.workflowId);\nconst workflowName = fmt(item.workflowName);\nconst executionId = fmt(item.executionId);\nconst failedNodeName = fmt(item.failedNodeName);\nconst errorName = fmt(item.errorName, 'Error');\nconst errorMessage = fmt(item.errorMessage);\nconst timestamp = fmt(item.timestamp, nowISO());\n\n// Asunto\nconst subject = `❌ n8n | Falló \"${workflowName}\" (Exec ${executionId})`;\n\n// Cuerpo (texto plano)\nconst bodyText =\n`Hola 👋\n\nSe detectó un error en n8n.\n\n🧩 Workflow: ${workflowName} (ID: ${workflowId})\n🆔 Execution ID: ${executionId}\n🧱 Nodo con error: ${failedNodeName}\n🏷️ Tipo de error: ${errorName}\n💬 Mensaje: ${errorMessage}\n🕒 Timestamp: ${timestamp}\n\n— \nEste mensaje fue generado automáticamente por n8n.`;\n\n// Cuerpo (HTML)\nconst bodyHtml =\n`<div style=\"font-family: Arial, sans-serif; line-height: 1.5;\">\n  <p>Hola 👋</p>\n  <p>Se detectó un error en <b>n8n</b>.</p>\n\n  <table style=\"border-collapse: collapse; margin-top: 10px;\">\n    <tr><td style=\"padding: 6px 10px; border: 1px solid #ddd;\"><b>Workflow</b></td><td style=\"padding: 6px 10px; border: 1px solid #ddd;\">${workflowName} (ID: ${workflowId})</td></tr>\n    <tr><td style=\"padding: 6px 10px; border: 1px solid #ddd;\"><b>Execution ID</b></td><td style=\"padding: 6px 10px; border: 1px solid #ddd;\">${executionId}</td></tr>\n    <tr><td style=\"padding: 6px 10px; border: 1px solid #ddd;\"><b>Nodo con error</b></td><td style=\"padding: 6px 10px; border: 1px solid #ddd;\">${failedNodeName}</td></tr>\n    <tr><td style=\"padding: 6px 10px; border: 1px solid #ddd;\"><b>Tipo de error</b></td><td style=\"padding: 6px 10px; border: 1px solid #ddd;\">${errorName}</td></tr>\n    <tr><td style=\"padding: 6px 10px; border: 1px solid #ddd;\"><b>Mensaje</b></td><td style=\"padding: 6px 10px; border: 1px solid #ddd;\">${errorMessage}</td></tr>\n    <tr><td style=\"padding: 6px 10px; border: 1px solid #ddd;\"><b>Timestamp</b></td><td style=\"padding: 6px 10px; border: 1px solid #ddd;\">${timestamp}</td></tr>\n  </table>\n\n  <p style=\"margin-top: 14px; color: #666; font-size: 12px;\">\n    —<br/>\n    Este mensaje fue generado automáticamente por n8n.\n  </p>\n</div>`;\n\nreturn [\n  {\n    json: {\n      subject,\n      bodyText,\n      bodyHtml,\n      // por si querés reenviar el payload original también:\n      raw: item,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -80
+      ],
+      "id": "0d02285e-07e9-4b0d-95bc-b511b998614a",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "normalizar datos": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "normalizar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {},
+  "tags": [
+    {
+      "name": "Error Handler"
+    }
+  ]
+}
